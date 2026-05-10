@@ -117,6 +117,7 @@ export default async function HomePage() {
                       {new Date(it.consumedAt).toLocaleTimeString("ja-JP", {
                         hour: "2-digit",
                         minute: "2-digit",
+                        timeZone: "Asia/Tokyo",
                       })}
                       {it.source === "OCR" ? " · OCR" : " · 手入力"}
                     </p>

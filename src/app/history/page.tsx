@@ -12,9 +12,9 @@ export default async function HistoryPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/auth/signin");
 
-  const since = new Date();
-  since.setHours(0, 0, 0, 0);
-  since.setDate(since.getDate() - 13); // last 14 days incl. today
+  const { startOfLocalDay } = await import("@/lib/salt");
+  const today = startOfLocalDay();
+  const since = new Date(today.getTime() - 13 * 24 * 60 * 60 * 1000); // last 14 days incl. today
 
   const items = await prisma.intake.findMany({
     where: {
@@ -81,6 +81,7 @@ export default async function HistoryPage() {
                     day: "2-digit",
                     hour: "2-digit",
                     minute: "2-digit",
+                    timeZone: "Asia/Tokyo",
                   })}
                   {it.source === "OCR" ? " · OCR" : " · 手入力"}
                 </p>
@@ -101,11 +102,9 @@ function bucketByDay(
 ): DayBucket[] {
   const map = new Map<string, DayBucket>();
   for (const it of items) {
-    const d = new Date(it.consumedAt);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-      2,
-      "0"
-    )}-${String(d.getDate()).padStart(2, "0")}`;
+    const key = new Date(it.consumedAt).toLocaleDateString("en-CA", {
+      timeZone: "Asia/Tokyo",
+    }); // "YYYY-MM-DD" in JST
     const cur = map.get(key) ?? { day: key, total: 0, count: 0 };
     cur.total += it.saltGrams;
     cur.count += 1;
