@@ -1,0 +1,100 @@
+// Prisma schema for the Salt Intake App
+// docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Auth.js (NextAuth) models ---
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+
+  accounts Account[]
+  sessions Session[]
+  intakes  Intake[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- Domain ---
+// One row = one eating event (a single food/portion at a moment in time).
+model Intake {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Display name (e.g. 「カップヌードル」「醤油」)
+  name String
+
+  // Salt-equivalent in grams for the entire portion that was actually consumed.
+  // We always store the eaten amount, not the per-100g value, so daily totals
+  // are a simple SUM.
+  saltGrams Float
+
+  // Free-form note (e.g. amount used / brand / "shoyu 1 tbsp ≒ 18g")
+  note String?
+
+  // How this entry was created — useful for analytics and UI badges.
+  source IntakeSource @default(MANUAL)
+
+  // Original OCR raw text, kept for auditing/edit fallback.
+  ocrRawText String? @db.Text
+
+  // When the food was eaten (defaults to now, but user-editable).
+  consumedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, consumedAt])
+}
+
+enum IntakeSource {
+  MANUAL
+  OCR
+}
