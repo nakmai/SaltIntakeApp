@@ -7,6 +7,7 @@ import {
   endOfLocalDay,
   formatGrams,
   startOfLocalDay,
+  startOfYesterday,
 } from "@/lib/salt";
 
 export const dynamic = "force-dynamic";
@@ -18,15 +19,27 @@ export default async function HomePage() {
   const start = startOfLocalDay();
   const end = endOfLocalDay();
 
-  const todays = await prisma.intake.findMany({
-    where: {
-      userId: session.user.id,
-      consumedAt: { gte: start, lt: end },
-    },
-    orderBy: { consumedAt: "desc" },
-  });
+  const yesterdayStart = startOfYesterday();
+
+  const [todays, yesterdays] = await Promise.all([
+    prisma.intake.findMany({
+      where: {
+        userId: session.user.id,
+        consumedAt: { gte: start, lt: end },
+      },
+      orderBy: { consumedAt: "desc" },
+    }),
+    prisma.intake.findMany({
+      where: {
+        userId: session.user.id,
+        consumedAt: { gte: yesterdayStart, lt: start },
+      },
+      select: { saltGrams: true },
+    }),
+  ]);
 
   const total = todays.reduce((acc, x) => acc + x.saltGrams, 0);
+  const yesterdayTotal = yesterdays.reduce((acc, x) => acc + x.saltGrams, 0);
   const target = dailyTarget();
   const pct = Math.min(100, Math.round((total / target) * 100));
   const over = total > target;
@@ -61,6 +74,9 @@ export default async function HomePage() {
         </div>
         <p className="mt-2 text-xs text-gray-500">
           {over ? `目標を ${(total - target).toFixed(2)} g 超過しています` : `目標まであと ${(target - total).toFixed(2)} g`}
+        </p>
+        <p className="mt-1 text-xs text-gray-400">
+          昨日: {yesterdayTotal.toFixed(2)} g
         </p>
       </section>
 
