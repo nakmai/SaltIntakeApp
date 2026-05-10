@@ -22,7 +22,7 @@ type Props = {
 export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
   const router = useRouter();
   const [v, setV] = useState<IntakeFormValues>(initial);
-  const [operator, setOperator] = useState<"" | "×" | "÷">("");
+  const [operator, setOperator] = useState<"" | "×" | "÷" | "+" | "-">("");
   const [quantity, setQuantity] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -43,8 +43,15 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
     let salt = base;
     if (operator && quantity) {
       const qty = Number(quantity);
-      if (!Number.isFinite(qty) || qty <= 0) return setError("数量を正しく入力してください");
-      salt = operator === "×" ? base * qty : base / qty;
+      if (!Number.isFinite(qty)) return setError("数量を正しく入力してください");
+      if ((operator === "×" || operator === "÷") && qty <= 0) return setError("数量を正しく入力してください");
+      if (operator === "÷" && qty === 0) return setError("0で割ることはできません");
+      switch (operator) {
+        case "×": salt = base * qty; break;
+        case "÷": salt = base / qty; break;
+        case "+": salt = base + qty; break;
+        case "-": salt = base - qty; break;
+      }
     }
     if (!Number.isFinite(salt) || salt < 0) return setError("計算結果が不正です");
 
@@ -117,18 +124,19 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
           />
           <select
             value={operator}
-            onChange={(e) => setOperator(e.target.value as "" | "×" | "÷")}
+            onChange={(e) => setOperator(e.target.value as "" | "×" | "÷" | "+" | "-")}
             className="input w-16 text-center"
           >
-            <option value="">-</option>
+            <option value=""></option>
             <option value="×">×</option>
             <option value="÷">÷</option>
+            <option value="+">+</option>
+            <option value="-">−</option>
           </select>
           <input
             type="number"
             inputMode="decimal"
             step="0.1"
-            min="0"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             placeholder="数量"
@@ -139,8 +147,15 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
         {operator && quantity && (() => {
           const base = Number(v.saltGrams);
           const qty = Number(quantity);
-          if (!Number.isFinite(base) || !Number.isFinite(qty) || qty <= 0) return null;
-          const result = operator === "×" ? base * qty : base / qty;
+          if (!Number.isFinite(base) || !Number.isFinite(qty)) return null;
+          let result: number;
+          switch (operator) {
+            case "×": result = base * qty; break;
+            case "÷": result = qty !== 0 ? base / qty : NaN; break;
+            case "+": result = base + qty; break;
+            case "-": result = base - qty; break;
+            default: return null;
+          }
           return Number.isFinite(result) && result >= 0 ? (
             <p className="mt-1 text-xs text-gray-500 tabular-nums">
               = {(Math.round(result * 100) / 100).toFixed(2)} g
