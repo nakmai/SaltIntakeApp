@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { evalExpression, isExpression } from "@/lib/eval-expression";
 import { toLocalDatetimeInput } from "@/lib/date";
 
 export type IntakeFormValues = {
@@ -23,6 +22,8 @@ type Props = {
 export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
   const router = useRouter();
   const [v, setV] = useState<IntakeFormValues>(initial);
+  const [operator, setOperator] = useState<"" | "×" | "÷">("");
+  const [quantity, setQuantity] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
@@ -35,9 +36,17 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const salt = evalExpression(v.saltGrams);
+    const base = Number(v.saltGrams);
     if (!v.name.trim()) return setError("食品名を入力してください");
-    if (salt === null) return setError("塩分(g)を正しく入力してください");
+    if (!Number.isFinite(base) || base < 0) return setError("塩分(g)を正しく入力してください");
+
+    let salt = base;
+    if (operator && quantity) {
+      const qty = Number(quantity);
+      if (!Number.isFinite(qty) || qty <= 0) return setError("数量を正しく入力してください");
+      salt = operator === "×" ? base * qty : base / qty;
+    }
+    if (!Number.isFinite(salt) || salt < 0) return setError("計算結果が不正です");
 
     const body = {
       name: v.name.trim(),
@@ -95,21 +104,48 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
       </Field>
 
       <Field label="塩分相当量 (g)">
-        <input
-          type="text"
-          inputMode="decimal"
-          value={v.saltGrams}
-          onChange={(e) => update("saltGrams", e.target.value)}
-          placeholder="例: 2.5 または 5.2×0.1"
-          className="input tabular-nums"
-        />
-        {isExpression(v.saltGrams) && (() => {
-          const result = evalExpression(v.saltGrams);
-          return result !== null ? (
-            <p className="mt-1 text-xs text-gray-500 tabular-nums">= {result.toFixed(2)} g</p>
-          ) : (
-            <p className="mt-1 text-xs text-rose-400">計算式が正しくありません</p>
-          );
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            min="0"
+            value={v.saltGrams}
+            onChange={(e) => update("saltGrams", e.target.value)}
+            placeholder="例: 2.5"
+            className="input tabular-nums flex-1"
+          />
+          <select
+            value={operator}
+            onChange={(e) => setOperator(e.target.value as "" | "×" | "÷")}
+            className="input w-16 text-center"
+          >
+            <option value="">-</option>
+            <option value="×">×</option>
+            <option value="÷">÷</option>
+          </select>
+          <input
+            type="number"
+            inputMode="decimal"
+            step="0.1"
+            min="0"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            placeholder="数量"
+            className="input tabular-nums w-24"
+            disabled={!operator}
+          />
+        </div>
+        {operator && quantity && (() => {
+          const base = Number(v.saltGrams);
+          const qty = Number(quantity);
+          if (!Number.isFinite(base) || !Number.isFinite(qty) || qty <= 0) return null;
+          const result = operator === "×" ? base * qty : base / qty;
+          return Number.isFinite(result) && result >= 0 ? (
+            <p className="mt-1 text-xs text-gray-500 tabular-nums">
+              = {(Math.round(result * 100) / 100).toFixed(2)} g
+            </p>
+          ) : null;
         })()}
       </Field>
 
