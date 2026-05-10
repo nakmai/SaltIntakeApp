@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { IntakeForm, toLocalDatetimeInput } from "@/components/IntakeForm";
+import { IntakeForm } from "@/components/IntakeForm";
+import { toLocalDatetimeInput } from "@/lib/date";
 
 export const dynamic = "force-dynamic";
 
