@@ -111,21 +111,22 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
       </Field>
 
       <Field label="塩分相当量 (g)">
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            min="0"
-            value={v.saltGrams}
-            onChange={(e) => update("saltGrams", e.target.value)}
-            placeholder="例: 2.5"
-            className="input tabular-nums flex-1"
-          />
+        <input
+          type="number"
+          inputMode="decimal"
+          step="0.01"
+          min="0"
+          value={v.saltGrams}
+          onChange={(e) => update("saltGrams", e.target.value)}
+          placeholder="例: 2.5"
+          className="input tabular-nums"
+        />
+        <div className="mt-2 flex items-center gap-2">
           <select
             value={operator}
             onChange={(e) => setOperator(e.target.value as "" | "×" | "÷" | "+" | "-")}
-            className="input w-16 text-center"
+            className="input shrink-0"
+            style={{ width: "4rem" }}
           >
             <option value=""></option>
             <option value="×">×</option>
@@ -140,7 +141,7 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             placeholder="数量"
-            className="input tabular-nums w-24"
+            className="input tabular-nums flex-1"
             disabled={!operator}
           />
         </div>
