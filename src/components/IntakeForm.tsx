@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { evalExpression, isExpression } from "@/lib/eval-expression";
+import { toLocalDatetimeInput } from "@/lib/date";
 
 export type IntakeFormValues = {
   name: string;
@@ -33,9 +35,9 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const salt = Number(v.saltGrams);
+    const salt = evalExpression(v.saltGrams);
     if (!v.name.trim()) return setError("食品名を入力してください");
-    if (!Number.isFinite(salt) || salt < 0) return setError("塩分(g)を正しく入力してください");
+    if (salt === null) return setError("塩分(g)を正しく入力してください");
 
     const body = {
       name: v.name.trim(),
@@ -94,15 +96,21 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
 
       <Field label="塩分相当量 (g)">
         <input
-          type="number"
+          type="text"
           inputMode="decimal"
-          step="0.01"
-          min="0"
           value={v.saltGrams}
           onChange={(e) => update("saltGrams", e.target.value)}
-          placeholder="例: 2.5"
+          placeholder="例: 2.5 または 5.2×0.1"
           className="input tabular-nums"
         />
+        {isExpression(v.saltGrams) && (() => {
+          const result = evalExpression(v.saltGrams);
+          return result !== null ? (
+            <p className="mt-1 text-xs text-gray-500 tabular-nums">= {result.toFixed(2)} g</p>
+          ) : (
+            <p className="mt-1 text-xs text-rose-400">計算式が正しくありません</p>
+          );
+        })()}
       </Field>
 
       <Field label="日時">
@@ -112,6 +120,13 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
           onChange={(e) => update("consumedAt", e.target.value)}
           className="input"
         />
+        <button
+          type="button"
+          onClick={() => update("consumedAt", toLocalDatetimeInput())}
+          className="mt-1 text-xs text-brand-600 underline"
+        >
+          現在時刻を登録
+        </button>
       </Field>
 
       <Field label="メモ (任意)">

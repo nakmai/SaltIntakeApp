@@ -16,18 +16,24 @@ const MAX_DIM = 1600;
 
 export default function CapturePage() {
   const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<OcrResponse | null>(null);
 
-  function pick() {
-    inputRef.current?.click();
+  function pickCamera() {
+    cameraRef.current?.click();
+  }
+
+  function pickFile() {
+    fileRef.current?.click();
   }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
     setError(null);
     setResult(null);
@@ -77,21 +83,38 @@ export default function CapturePage() {
       <h1 className="text-2xl font-bold sm:text-3xl">栄養成分表示を撮影</h1>
 
       <input
-        ref={inputRef}
+        ref={cameraRef}
         type="file"
         accept="image/*"
         capture="environment"
         onChange={onFile}
         className="hidden"
       />
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        onChange={onFile}
+        className="hidden"
+      />
 
       {!preview ? (
-        <button
-          onClick={pick}
-          className="flex h-64 w-full items-center justify-center rounded-2xl border-2 border-dashed border-brand-500 bg-brand-50 text-base font-semibold text-brand-700 active:bg-brand-100 dark:bg-brand-500/10"
-        >
-          カメラを起動
-        </button>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={pickCamera}
+            className="flex h-48 w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-500 bg-brand-50 text-base font-semibold text-brand-700 active:bg-brand-100 dark:bg-brand-500/10"
+          >
+            <span className="text-3xl" aria-hidden>📷</span>
+            カメラで撮影
+          </button>
+          <button
+            onClick={pickFile}
+            className="flex h-48 w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 text-base font-semibold text-gray-700 active:bg-gray-100 dark:border-gray-700 dark:bg-gray-900/50 dark:text-gray-300"
+          >
+            <span className="text-3xl" aria-hidden>📁</span>
+            ファイルから選択
+          </button>
+        </div>
       ) : (
         <div className="space-y-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -100,12 +123,21 @@ export default function CapturePage() {
             alt="撮影画像"
             className="w-full rounded-2xl border border-gray-200 dark:border-gray-800"
           />
-          <button
-            onClick={pick}
-            className="text-sm text-brand-600 underline"
-          >
-            撮り直す
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={pickCamera}
+              className="text-sm text-brand-600 underline"
+            >
+              撮り直す
+            </button>
+            <span className="text-sm text-gray-300">|</span>
+            <button
+              onClick={pickFile}
+              className="text-sm text-brand-600 underline"
+            >
+              ファイルから選択
+            </button>
+          </div>
         </div>
       )}
 
