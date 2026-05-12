@@ -7,6 +7,7 @@ export const IntakeCreateSchema = z.object({
   source: z.enum(["MANUAL", "OCR"]).default("MANUAL"),
   ocrRawText: z.string().max(4000).optional().nullable(),
   consumedAt: z.coerce.date().optional(),
+  isDraft: z.boolean().optional(),
 });
 
 export const IntakeUpdateSchema = IntakeCreateSchema.partial();

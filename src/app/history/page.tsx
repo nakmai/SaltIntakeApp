@@ -24,7 +24,7 @@ export default async function HistoryPage() {
     orderBy: { consumedAt: "desc" },
   });
 
-  const buckets = bucketByDay(items);
+  const buckets = bucketByDay(items.filter((it) => !it.isDraft));
   const target = dailyTarget();
 
   return (
@@ -74,7 +74,14 @@ export default async function HistoryPage() {
               className="flex items-center justify-between px-4 py-3 active:bg-gray-50 dark:active:bg-gray-800"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{it.name}</p>
+                <p className="truncate text-sm font-medium">
+                  {it.name}
+                  {it.isDraft ? (
+                    <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-normal text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
+                      下書き
+                    </span>
+                  ) : null}
+                </p>
                 <p className="text-xs text-gray-500">
                   {new Date(it.consumedAt).toLocaleString("ja-JP", {
                     month: "2-digit",
@@ -86,7 +93,7 @@ export default async function HistoryPage() {
                   {it.source === "OCR" ? " · OCR" : " · 手入力"}
                 </p>
               </div>
-              <span className="ml-3 shrink-0 tabular-nums text-sm">
+              <span className={`ml-3 shrink-0 tabular-nums text-sm ${it.isDraft ? "text-gray-400" : ""}`}>
                 {formatGrams(it.saltGrams)}
               </span>
             </Link>
@@ -98,7 +105,7 @@ export default async function HistoryPage() {
 }
 
 function bucketByDay(
-  items: { saltGrams: number; consumedAt: Date }[]
+  items: { saltGrams: number; consumedAt: Date; isDraft?: boolean }[]
 ): DayBucket[] {
   const map = new Map<string, DayBucket>();
   for (const it of items) {

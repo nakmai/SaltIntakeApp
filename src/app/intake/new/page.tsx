@@ -19,9 +19,13 @@ export default async function NewIntakePage({
     return Array.isArray(v) ? v[0] : v;
   };
 
+  const isDraft = get("draft") === "1";
+
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <h1 className="text-2xl font-bold sm:text-3xl">記録を追加</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">
+        {isDraft ? "記録を追加（下書き）" : "記録を追加"}
+      </h1>
       <IntakeForm
         initial={{
           name: get("name") ?? "",
@@ -30,6 +34,7 @@ export default async function NewIntakePage({
           consumedAt: toLocalDatetimeInput(),
           source: get("source") === "OCR" ? "OCR" : "MANUAL",
           ocrRawText: get("raw") ?? null,
+          isDraft,
         }}
       />
     </div>

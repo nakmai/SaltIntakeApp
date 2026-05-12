@@ -82,6 +82,9 @@ model Intake {
   // How this entry was created — useful for analytics and UI badges.
   source IntakeSource @default(MANUAL)
 
+  // Draft entries (e.g., AI-estimated from food photos) don't count toward daily total.
+  isDraft Boolean @default(false)
+
   // Original OCR raw text, kept for auditing/edit fallback.
   ocrRawText String? @db.Text
 

@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose up:*)",
+      "Bash(docker compose exec:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "WebFetch(domain:neon.com)",
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh auth status:*)",
+      "Bash(ssh:*)",
+      "Bash(npm install:*)",
+      "Bash(npm info:*)",
+      "Bash(npm run build:*)"
+    ]
+  }
+}

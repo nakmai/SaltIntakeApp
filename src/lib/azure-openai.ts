@@ -2,7 +2,7 @@
 // Uses chat completions with a vision-capable deployment to extract salt
 // content from a nutrition-label photo.
 
-const SYSTEM_PROMPT = `あなたは食品の栄養成分表示を読み取るOCRアシスタントです。
+const LABEL_PROMPT = `あなたは食品の栄養成分表示を読み取るOCRアシスタントです。
 ユーザーから渡された画像（食品パッケージの栄養成分表示）から、
 「食塩相当量」または「食塩」または「ナトリウム」を抽出してください。
 
@@ -21,6 +21,31 @@ const SYSTEM_PROMPT = `あなたは食品の栄養成分表示を読み取るOCR
   "rawText": string,
   "confidence": "high" | "medium" | "low"
 }`;
+
+const FOOD_PROMPT = `あなたは料理の写真から食塩相当量を推定する栄養アシスタントです。
+ユーザーから渡された画像（料理・食事の写真）について、
+料理名と一般的なレシピ・市販品のデータから食塩相当量(g)を推定してください。
+
+ルール:
+- 料理を特定し、name に料理名を入れる(例: 「ラーメン」「カレーライス」「親子丼」)。
+- saltGrams は一般的な1食分あたりの食塩相当量(g)の推定値を入れる。スープを全部飲むラーメンなら6g前後、カレーライス1人前なら3g前後など、現実的な値。
+- basis には推定根拠を簡潔に書く(例: 「1人前(約500g)」「スープ込み」)。
+- rawText には推定の説明を簡潔に書く(例: 「ラーメン1杯。スープは塩分が高い傾向。」)。
+- 推定は不確かなため、confidence は基本「low」または「medium」。料理が明確に特定でき、典型的な調理法と推定できる場合のみ「medium」。
+- 料理が判別できない場合は name は null、saltGrams は null、confidence は「low」。
+- sodiumMg は基本 null。
+- 必ず以下のJSONのみを返す。前後の説明文・コードフェンスは禁止。
+
+{
+  "name": string | null,
+  "saltGrams": number | null,
+  "basis": string | null,
+  "sodiumMg": number | null,
+  "rawText": string,
+  "confidence": "high" | "medium" | "low"
+}`;
+
+export type OcrMode = "label" | "food";
 
 export type OcrResult = {
   name: string | null;
@@ -47,7 +72,8 @@ function getConfig() {
 }
 
 export async function extractSaltFromImage(
-  imageDataUrl: string
+  imageDataUrl: string,
+  mode: OcrMode = "label"
 ): Promise<OcrResult> {
   const { endpoint, apiKey, deployment, apiVersion } = getConfig();
 
@@ -55,16 +81,18 @@ export async function extractSaltFromImage(
     deployment
   )}/chat/completions?api-version=${apiVersion}`;
 
+  const systemPrompt = mode === "food" ? FOOD_PROMPT : LABEL_PROMPT;
+  const userText = mode === "food"
+    ? "この料理の食塩相当量を一般的なレシピから推定してください。"
+    : "この栄養成分表示の食塩相当量を抽出してください。";
+
   const body = {
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt },
       {
         role: "user",
         content: [
-          {
-            type: "text",
-            text: "この栄養成分表示の食塩相当量を抽出してください。",
-          },
+          { type: "text", text: userText },
           { type: "image_url", image_url: { url: imageDataUrl } },
         ],
       },

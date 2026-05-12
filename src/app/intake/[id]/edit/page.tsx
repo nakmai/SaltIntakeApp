@@ -22,7 +22,9 @@ export default async function EditIntakePage({
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <h1 className="text-2xl font-bold sm:text-3xl">記録を編集</h1>
+      <h1 className="text-2xl font-bold sm:text-3xl">
+        記録を編集{item.isDraft ? "（下書き）" : ""}
+      </h1>
       <IntakeForm
         intakeId={item.id}
         initial={{
@@ -32,6 +34,7 @@ export default async function EditIntakePage({
           consumedAt: toLocalDatetimeInput(item.consumedAt),
           source: item.source,
           ocrRawText: item.ocrRawText,
+          isDraft: item.isDraft,
         }}
       />
     </div>

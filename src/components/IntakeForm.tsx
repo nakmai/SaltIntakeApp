@@ -11,6 +11,7 @@ export type IntakeFormValues = {
   consumedAt: string;
   source: "MANUAL" | "OCR";
   ocrRawText?: string | null;
+  isDraft?: boolean;
 };
 
 type Props = {
@@ -28,13 +29,13 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
   const [pending, start] = useTransition();
 
   const isEdit = !!intakeId;
+  const isDraft = !!v.isDraft;
 
   function update<K extends keyof IntakeFormValues>(k: K, val: IntakeFormValues[K]) {
     setV((p) => ({ ...p, [k]: val }));
   }
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function submit(asDraft: boolean) {
     setError(null);
     const base = Number(v.saltGrams);
     if (!v.name.trim()) return setError("食品名を入力してください");
@@ -62,6 +63,7 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
       consumedAt: v.consumedAt ? new Date(v.consumedAt).toISOString() : undefined,
       source: v.source,
       ocrRawText: v.ocrRawText ?? null,
+      isDraft: asDraft,
     };
 
     start(async () => {
@@ -80,6 +82,11 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
       router.push("/");
       router.refresh();
     });
+  }
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    submit(isDraft);
   }
 
   async function onDelete() {
@@ -198,16 +205,43 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
         </details>
       ) : null}
 
+      {isDraft && !isEdit ? (
+        <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+          AI推定値です。「下書き保存」で記録すれば合計には含まれません。値を確認したら「確定して登録」で正式登録できます。
+        </div>
+      ) : null}
+
       {error ? <p className="text-sm text-rose-600">{error}</p> : null}
 
       <div className="flex gap-2 pt-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="flex-1 rounded-xl bg-brand-600 px-4 py-3 text-base font-semibold text-white disabled:opacity-50"
-        >
-          {pending ? "保存中..." : submitLabel ?? (isEdit ? "更新する" : "登録する")}
-        </button>
+        {isDraft && !isEdit ? (
+          <>
+            <button
+              type="button"
+              onClick={() => submit(true)}
+              disabled={pending}
+              className="flex-1 rounded-xl bg-amber-600 px-4 py-3 text-base font-semibold text-white disabled:opacity-50"
+            >
+              {pending ? "保存中..." : "下書き保存"}
+            </button>
+            <button
+              type="button"
+              onClick={() => submit(false)}
+              disabled={pending}
+              className="flex-1 rounded-xl border border-brand-600 px-4 py-3 text-base font-semibold text-brand-600 disabled:opacity-50"
+            >
+              確定して登録
+            </button>
+          </>
+        ) : (
+          <button
+            type="submit"
+            disabled={pending}
+            className="flex-1 rounded-xl bg-brand-600 px-4 py-3 text-base font-semibold text-white disabled:opacity-50"
+          >
+            {pending ? "保存中..." : submitLabel ?? (isEdit ? "更新する" : "登録する")}
+          </button>
+        )}
         {isEdit ? (
           <button
             type="button"
@@ -219,6 +253,20 @@ export function IntakeForm({ initial, intakeId, submitLabel }: Props) {
           </button>
         ) : null}
       </div>
+
+      {isEdit && isDraft ? (
+        <p className="text-xs text-amber-700 dark:text-amber-300">
+          この記録は下書きです。
+          <button
+            type="button"
+            onClick={() => submit(false)}
+            disabled={pending}
+            className="ml-1 underline"
+          >
+            確定する
+          </button>
+        </p>
+      ) : null}
 
       <style>{`
         .input {

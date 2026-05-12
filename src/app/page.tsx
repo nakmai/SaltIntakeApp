@@ -33,12 +33,16 @@ export default async function HomePage() {
       where: {
         userId: session.user.id,
         consumedAt: { gte: yesterdayStart, lt: start },
+        isDraft: false,
       },
       select: { saltGrams: true },
     }),
   ]);
 
-  const total = todays.reduce((acc, x) => acc + x.saltGrams, 0);
+  const total = todays
+    .filter((x) => !x.isDraft)
+    .reduce((acc, x) => acc + x.saltGrams, 0);
+  const draftCount = todays.filter((x) => x.isDraft).length;
   const yesterdayTotal = yesterdays.reduce((acc, x) => acc + x.saltGrams, 0);
   const target = dailyTarget();
   const pct = Math.min(100, Math.round((total / target) * 100));
@@ -77,6 +81,7 @@ export default async function HomePage() {
         </p>
         <p className="mt-1 text-xs text-gray-400">
           昨日: {yesterdayTotal.toFixed(2)} g
+          {draftCount > 0 ? ` ・ 下書き ${draftCount}件（合計に未反映）` : ""}
         </p>
       </section>
 
@@ -85,7 +90,7 @@ export default async function HomePage() {
           href="/capture"
           className="flex items-center justify-center rounded-xl bg-brand-600 px-4 py-4 text-base font-semibold text-white shadow-sm active:bg-brand-700"
         >
-          栄養表示を撮影
+          写真から登録
         </Link>
         <Link
           href="/intake/new"
@@ -112,7 +117,14 @@ export default async function HomePage() {
                   className="flex items-center justify-between px-4 py-3 active:bg-gray-50 dark:active:bg-gray-800"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{it.name}</p>
+                    <p className="truncate text-sm font-medium">
+                      {it.name}
+                      {it.isDraft ? (
+                        <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs font-normal text-amber-800 dark:bg-amber-900/50 dark:text-amber-200">
+                          下書き
+                        </span>
+                      ) : null}
+                    </p>
                     <p className="text-xs text-gray-500">
                       {new Date(it.consumedAt).toLocaleTimeString("ja-JP", {
                         hour: "2-digit",
@@ -122,7 +134,7 @@ export default async function HomePage() {
                       {it.source === "OCR" ? " · OCR" : " · 手入力"}
                     </p>
                   </div>
-                  <span className="ml-3 shrink-0 tabular-nums text-sm">
+                  <span className={`ml-3 shrink-0 tabular-nums text-sm ${it.isDraft ? "text-gray-400" : ""}`}>
                     {formatGrams(it.saltGrams)}
                   </span>
                 </Link>

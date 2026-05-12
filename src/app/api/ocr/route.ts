@@ -11,9 +11,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  let body: { image?: string };
+  let body: { image?: string; mode?: string };
   try {
-    body = (await req.json()) as { image?: string };
+    body = (await req.json()) as { image?: string; mode?: string };
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
@@ -26,8 +26,10 @@ export async function POST(req: Request) {
     );
   }
 
+  const mode = body.mode === "food" ? "food" : "label";
+
   try {
-    const result = await extractSaltFromImage(image);
+    const result = await extractSaltFromImage(image, mode);
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "unknown_error";
